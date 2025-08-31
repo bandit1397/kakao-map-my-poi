@@ -4,8 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>카카오맵 위치 저장 — LocalStorage + Polyline + 편집/삭제 + CSV/JSON</title>
-<!-- ⚠️ 본인 JavaScript 키로 교체하세요 -->
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=91d4176cb6da4e212c947c5d549ac640&autoload=false"></script>
+
+<!-- ✅ favicon 에러 방지 -->
+<link rel="icon" href="data:,">
+
+<!-- ✅ 카카오맵 SDK (캐시방지 쿼리 & autoload=false) -->
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=91d4176cb6da4e212c947c5d549ac640&autoload=false&libraries=services,drawing"></script>
 
 <style>
 :root { --border:#dcdcdc; }
@@ -32,9 +36,7 @@ button:hover { background:#f6f6f6; }
 <body>
 <h1>카카오맵 위치 저장 — LocalStorage + Polyline + 편집/삭제 + CSV/JSON</h1>
 
-
 <div id="map"></div>
-
 
 <div class="toolbar">
 <button id="btnSave">📍 내 위치 저장</button>
@@ -44,8 +46,121 @@ button:hover { background:#f6f6f6; }
 <span class="pill" id="countPill">총 0개</span>
 </div>
 
-
 <div class="panel">
 <div class="list" id="list"></div>
-<div class="foot">💡 팁: 마커를 <b>클릭</b>하면 해당 포인트의 <b>이름 편집</b> 또는 <span class="danger"><b>삭제</b></span>가 가능합니다. (프롬프트 활용)</div>
+<div class="foot">💡 팁: 마커를 <b>클릭</b>하면 해당 포인트의 <b>이름 편집</b> 또는 <span class="danger"><b>삭제</b></span>가 가능합니다.</div>
+</div>
+
+<script>
+// ✅ 카카오맵 안전 로드
+kakao.maps.load(function() {
+    const container = document.getElementById('map');
+    const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 5 };
+    const map = new kakao.maps.Map(container, options);
+
+    const markers = [];
+    const polyline = new kakao.maps.Polyline({
+        path: [],
+        strokeWeight: 3,
+        strokeColor: '#FF0000',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid'
+    });
+    polyline.setMap(map);
+
+    const listEl = document.getElementById('list');
+    const countPill = document.getElementById('countPill');
+
+    // ✅ LocalStorage에서 데이터 불러오기
+    let points = JSON.parse(localStorage.getItem('savedPoints') || '[]');
+    renderList();
+
+    function renderList() {
+        listEl.innerHTML = '';
+        markers.forEach(m => m.setMap(null));
+        markers.length = 0;
+        const path = [];
+
+        points.forEach((p, idx) => {
+            const marker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(p.lat, p.lng),
+                map: map
+            });
+            markers.push(marker);
+            path.push(new kakao.maps.LatLng(p.lat, p.lng));
+
+            kakao.maps.event.addListener(marker, 'click', function() {
+                const newName = prompt('이름 수정 또는 삭제 (공백입력시 삭제):', p.name);
+                if (newName === null) return;
+                if (newName.trim() === '') {
+                    points.splice(idx, 1);
+                } else {
+                    points[idx].name = newName;
+                }
+                savePoints();
+                renderList();
+            });
+
+            const row = document.createElement('div');
+            row.className = 'row';
+            row.innerHTML = `<div class="meta"><div class="title">${p.name}</div><div class="sub">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div></div>`;
+            listEl.appendChild(row);
+        });
+
+        polyline.setPath(path);
+        countPill.textContent = `총 ${points.length}개`;
+        localStorage.setItem('savedPoints', JSON.stringify(points));
+    }
+
+    function savePoints() {
+        localStorage.setItem('savedPoints', JSON.stringify(points));
+    }
+
+    // ✅ 버튼 이벤트
+    document.getElementById('btnSave').addEventListener('click', function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const name = prompt('이 위치의 이름을 입력하세요:', `위치 ${points.length + 1}`);
+                if (!name) return;
+                points.push({ name, lat, lng });
+                savePoints();
+                renderList();
+            });
+        } else {
+            alert('이 브라우저는 위치 기능을 지원하지 않습니다.');
+        }
+    });
+
+    document.getElementById('btnCenter').addEventListener('click', function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                map.setCenter(new kakao.maps.LatLng(lat, lng));
+            });
+        }
+    });
+
+    document.getElementById('btnCsv').addEventListener('click', function() {
+        const csv = '이름,위도,경도\n' + points.map(p => `${p.name},${p.lat},${p.lng}`).join('\n');
+        downloadFile('points.csv', csv);
+    });
+
+    document.getElementById('btnJson').addEventListener('click', function() {
+        const json = JSON.stringify(points, null, 2);
+        downloadFile('points.json', json);
+    });
+
+    function downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+    }
+});
+</script>
+</body>
 </html>
