@@ -5,18 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>카카오맵 위치 저장 — LocalStorage + Polyline + 편집/삭제 + CSV/JSON</title>
 
-<!-- ✅ favicon 에러 방지 -->
+<!-- favicon 오류 방지 -->
 <link rel="icon" href="data:,">
 
-<!-- ✅ 카카오맵 SDK 정적 로드 -->
+<!-- 카카오맵 SDK 정적 로드 (autoload=false, libraries 포함) -->
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=91d4176cb6da4e212c947c5d549ac640&autoload=false&libraries=services,drawing"></script>
 
 <style>
-/* 🌟 높이 확보 */
-html, body { height: 100%; margin:0; padding:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial; }
-#map { width: 100%; height: 60vh; border:1px solid #dcdcdc; border-radius:12px; margin-bottom:12px; }
-
-h1 { font-size: 20px; margin: 16px 0 10px; }
+html, body { height:100%; margin:0; padding:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+#map { width:100%; height:60vh; border:1px solid #dcdcdc; border-radius:12px; margin-bottom:12px; }
+h1 { font-size:20px; margin:16px 0 10px; }
 .toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
 button, input[type="text"] { padding:6px 10px; border:1px solid #dcdcdc; border-radius:8px; background:#fff; cursor:pointer; }
 button:hover { background:#f6f6f6; }
@@ -60,19 +58,12 @@ window.onload = function() {
         const map = new kakao.maps.Map(container, options);
 
         const markers = [];
-        const polyline = new kakao.maps.Polyline({
-            path: [],
-            strokeWeight: 3,
-            strokeColor: '#FF0000',
-            strokeOpacity: 0.8,
-            strokeStyle: 'solid'
-        });
+        const polyline = new kakao.maps.Polyline({ path: [], strokeWeight: 3, strokeColor: '#FF0000', strokeOpacity: 0.8, strokeStyle: 'solid' });
         polyline.setMap(map);
 
         const listEl = document.getElementById('list');
         const countPill = document.getElementById('countPill');
 
-        // ✅ LocalStorage에서 불러오기
         let points = JSON.parse(localStorage.getItem('savedPoints') || '[]');
         renderList();
 
@@ -83,18 +74,15 @@ window.onload = function() {
             const path = [];
 
             points.forEach((p, idx) => {
-                const marker = new kakao.maps.Marker({
-                    position: new kakao.maps.LatLng(p.lat, p.lng),
-                    map: map
-                });
+                const marker = new kakao.maps.Marker({ position: new kakao.maps.LatLng(p.lat, p.lng), map: map });
                 markers.push(marker);
                 path.push(new kakao.maps.LatLng(p.lat, p.lng));
 
                 kakao.maps.event.addListener(marker, 'click', function() {
                     const newName = prompt('이름 수정 또는 삭제 (공백입력시 삭제):', p.name);
                     if(newName === null) return;
-                    if(newName.trim()==='') { points.splice(idx,1); }
-                    else { points[idx].name = newName; }
+                    if(newName.trim()==='') points.splice(idx,1);
+                    else points[idx].name = newName;
                     savePoints();
                     renderList();
                 });
@@ -113,7 +101,6 @@ window.onload = function() {
             localStorage.setItem('savedPoints', JSON.stringify(points));
         }
 
-        // 📍 내 위치 저장
         document.getElementById('btnSave').addEventListener('click', function(){
             if(navigator.geolocation){
                 navigator.geolocation.getCurrentPosition(function(pos){
@@ -128,7 +115,6 @@ window.onload = function() {
             } else { alert('위치 기능 미지원 브라우저'); }
         });
 
-        // 🎯 현재 위치로 이동
         document.getElementById('btnCenter').addEventListener('click', function(){
             if(navigator.geolocation){
                 navigator.geolocation.getCurrentPosition(function(pos){
@@ -137,13 +123,11 @@ window.onload = function() {
             }
         });
 
-        // CSV 다운로드
         document.getElementById('btnCsv').addEventListener('click', function(){
             const csv='이름,위도,경도\n'+points.map(p=>`${p.name},${p.lat},${p.lng}`).join('\n');
             downloadFile('points.csv', csv);
         });
 
-        // JSON 다운로드
         document.getElementById('btnJson').addEventListener('click', function(){
             const json = JSON.stringify(points,null,2);
             downloadFile('points.json', json);
