@@ -9,7 +9,7 @@
 <link rel="icon" href="data:,">
 
 <!-- ✅ 카카오맵 SDK (캐시방지 쿼리 & autoload=false) -->
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=91d4176cb6da4e212c947c5d549ac640&autoload=false&v=1.0.1"></script>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=91d4176cb6da4e212c947c5d549ac640&autoload=false" defer></script>
 
 <style>
 :root { --border:#dcdcdc; }
@@ -51,7 +51,7 @@ button:hover { background:#f6f6f6; }
 <div class="foot">💡 팁: 마커를 <b>클릭</b>하면 해당 포인트의 <b>이름 편집</b> 또는 <span class="danger"><b>삭제</b></span>가 가능합니다.</div>
 </div>
 
-<script>
+<script defer>
 // ✅ 카카오맵 안전 로드
 kakao.maps.load(function() {
     const container = document.getElementById('map');
