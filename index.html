@@ -1,74 +1,51 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>내 위치 확인 (테스트용)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f30dd6f94c36231cde8591b5aa702957"></script>
-    <style>
-        #map { width: 100%; height: 400px; }
-        button { margin: 5px; padding: 10px; }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>카카오맵 위치 저장 — LocalStorage + Polyline + 편집/삭제 + CSV/JSON</title>
+<!-- ⚠️ 본인 JavaScript 키로 교체하세요 -->
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f30dd6f94c36231cde8591b5aa702957&autoload=false"></script>
+
+<style>
+:root { --border:#dcdcdc; }
+body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial; margin: 16px; }
+h1 { font-size: 20px; margin: 0 0 10px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+button, input[type="text"] { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; }
+button:hover { background:#f6f6f6; }
+#map { width: 100%; height: 420px; border: 1px solid var(--border); border-radius: 12px; }
+.panel { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+.list { border:1px solid var(--border); border-radius: 12px; padding: 8px; max-height: 260px; overflow: auto; }
+.row { display:flex; align-items: center; gap:6px; padding:6px; border-bottom:1px dashed #eee; }
+.row:last-child { border-bottom: none; }
+.row .meta { flex: 1; min-width: 0; }
+.row .meta .title { font-weight: 600; font-size: 13px; }
+.row .meta .sub { color:#666; font-size: 12px; }
+.pill { padding:2px 6px; background:#f2f2f2; border-radius: 999px; font-size: 11px; }
+.muted { color:#666; }
+.danger { color:#b00020; }
+.inline { display:inline-flex; gap:6px; align-items: center; }
+.foot { font-size:12px; color:#666; margin-top:8px; }
+</style>
 </head>
 <body>
-    <h2>내 위치 확인 프로그램 (권한 꺼짐 시 테스트용 좌표)</h2>
-    <div id="map"></div>
-    <button onclick="showMyLocation()">내 위치 확인</button>
-    <button onclick="saveLocation()">저장</button>
+<h1>카카오맵 위치 저장 — LocalStorage + Polyline + 편집/삭제 + CSV/JSON</h1>
 
-    <script>
-        var map = new kakao.maps.Map(document.getElementById('map'), {
-            center: new kakao.maps.LatLng(37.5665, 126.9780), // 초기 위치: 서울
-            level: 5
-        });
 
-        var marker;
+<div id="map"></div>
 
-        function showMyLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    // 정상적으로 위치 가져오기 성공
-                    var lat = position.coords.latitude;
-                    var lng = position.coords.longitude;
-                    displayLocation(lat, lng);
-                }, function(error) {
-                    // 위치 권한 거부 또는 오류 시 테스트 좌표 사용
-                    alert("위치 정보를 가져올 수 없어 테스트용 좌표를 사용합니다.");
-                    displayLocation(37.5665, 126.9780); // 서울 시청 좌표
-                });
-            } else {
-                // 브라우저가 지원하지 않을 때
-                alert("이 브라우저에서는 위치 정보가 지원되지 않아 테스트용 좌표를 사용합니다.");
-                displayLocation(37.5665, 126.9780); // 서울 시청 좌표
-            }
-        }
 
-        function displayLocation(lat, lng) {
-            var locPosition = new kakao.maps.LatLng(lat, lng);
-            if (!marker) {
-                marker = new kakao.maps.Marker({
-                    map: map,
-                    position: locPosition
-                });
-            } else {
-                marker.setPosition(locPosition);
-            }
-            map.setCenter(locPosition);
-            alert("현재 위치:\n위도: " + lat + "\n경도: " + lng);
-        }
+<div class="toolbar">
+<button id="btnSave">📍 내 위치 저장</button>
+<button id="btnCenter">🎯 현재 위치로 이동</button>
+<button id="btnCsv">⬇️ CSV 다운로드</button>
+<button id="btnJson">⬇️ JSON 다운로드</button>
+<span class="pill" id="countPill">총 0개</span>
+</div>
 
-        function saveLocation() {
-            if (!marker) {
-                alert("먼저 '내 위치 확인'을 눌러주세요.");
-                return;
-            }
-            var id = prompt("이 좌표의 ID를 입력하세요:");
-            if (id) {
-                var pos = marker.getPosition();
-                console.log("저장된 위치:", {id: id, latitude: pos.getLat(), longitude: pos.getLng()});
-                alert("저장 완료! 콘솔을 확인하세요.");
-            }
-        }
-    </script>
-</body>
+
+<div class="panel">
+<div class="list" id="list"></div>
+<div class="foot">💡 팁: 마커를 <b>클릭</b>하면 해당 포인트의 <b>이름 편집</b> 또는 <span class="danger"><b>삭제</b></span>가 가능합니다. (프롬프트 활용)</div>
 </html>
