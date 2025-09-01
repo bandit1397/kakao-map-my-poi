@@ -2,136 +2,45 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<title>카카오맵 내 위치 좌표</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GitHub Pages 카카오맵 예제</title>
-<link rel="icon" href="data:,">
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a2b526f8744f752fb07593aad9404d67&libraries=services"></script>
 <style>
-body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:16px; }
-h1 { font-size: 20px; margin-bottom: 10px; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
-button { padding:6px 10px; border:1px solid #dcdcdc; border-radius:8px; background:#fff; cursor:pointer; }
-button:hover { background:#f6f6f6; }
-#map { width:100%; height:500px; border:1px solid #dcdcdc; border-radius:12px; }
-.panel { display:grid; gap:10px; margin-top:12px; }
-.list { border:1px solid #dcdcdc; border-radius:12px; padding:8px; max-height:260px; overflow:auto; }
-.row { display:flex; align-items:center; gap:6px; padding:6px; border-bottom:1px dashed #eee; }
-.row:last-child { border-bottom:none; }
-.row .meta { flex:1; min-width:0; }
-.row .title { font-weight:600; font-size:13px; }
-.row .sub { color:#666; font-size:12px; }
-.pill { padding:2px 6px; background:#f2f2f2; border-radius:999px; font-size:11px; }
-.danger { color:#b00020; }
-.foot { font-size:12px; color:#666; margin-top:8px; }
+  #map { width: 100%; height: 400px; }
 </style>
 </head>
 <body>
-<h1>GitHub Pages 카카오맵 예제</h1>
-
+<h2>내 위치 좌표 확인</h2>
 <div id="map"></div>
-
-<div class="toolbar">
-  <button id="btnSave">📍 내 위치 저장</button>
-  <button id="btnCenter">🎯 현재 위치로 이동</button>
-  <button id="btnCsv">⬇️ CSV 다운로드</button>
-  <button id="btnJson">⬇️ JSON 다운로드</button>
-  <span class="pill" id="countPill">총 0개</span>
-</div>
-
-<div class="panel">
-  <div class="list" id="list"></div>
-  <div class="foot">💡 마커 클릭 → 이름 편집/삭제 가능</div>
-</div>
-
-<!-- ✅ 카카오맵 SDK 정적 로드 -->
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=a2b526f8744f752fb07593aad9404d67&autoload=false&libraries=services,drawing"></script>
+<p id="coords"></p>
 
 <script>
-kakao.maps.load(function() {
-  const container = document.getElementById('map');
-  const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level:5 };
-  const map = new kakao.maps.Map(container, options);
+  // 지도 생성
+  var mapContainer = document.getElementById('map'); 
+  var mapOption = { center: new kakao.maps.LatLng(37.5665, 126.9780), zoom: 5 }; 
+  var map = new kakao.maps.Map(mapContainer, mapOption);
 
-  const markers = [];
-  const polyline = new kakao.maps.Polyline({
-    path: [],
-    strokeWeight:3,
-    strokeColor:'#FF0000',
-    strokeOpacity:0.8,
-    strokeStyle:'solid'
-  });
-  polyline.setMap(map);
+  // HTML5의 geolocation 사용
+  if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+          var lat = position.coords.latitude;
+          var lon = position.coords.longitude;
 
-  const listEl = document.getElementById('list');
-  const countPill = document.getElementById('countPill');
-  let points = JSON.parse(localStorage.getItem('savedPoints') || '[]');
-  renderList();
+          document.getElementById('coords').innerText =
+            `위도: ${lat}, 경도: ${lon}`;
 
-  function renderList() {
-    listEl.innerHTML = '';
-    markers.forEach(m => m.setMap(null));
-    markers.length = 0;
-    const path = [];
+          var locPosition = new kakao.maps.LatLng(lat, lon);
+          var marker = new kakao.maps.Marker({ position: locPosition });
+          marker.setMap(map);
 
-    points.forEach((p, idx) => {
-      const marker = new kakao.maps.Marker({ position:new kakao.maps.LatLng(p.lat,p.lng), map:map });
-      markers.push(marker);
-      path.push(new kakao.maps.LatLng(p.lat,p.lng));
-
-      kakao.maps.event.addListener(marker,'click',function() {
-        const newName = prompt('이름 수정 또는 삭제 (공백 입력 시 삭제):', p.name);
-        if(newName === null) return;
-        if(newName.trim() === '') points.splice(idx,1);
-        else points[idx].name = newName;
-        savePoints(); renderList();
+          map.setCenter(locPosition);
+          map.setLevel(3); // 확대
+      }, function(error) {
+          alert('위치 정보를 가져올 수 없습니다.');
       });
-
-      const row = document.createElement('div');
-      row.className='row';
-      row.innerHTML=`<div class="meta"><div class="title">${p.name}</div><div class="sub">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div></div>`;
-      listEl.appendChild(row);
-    });
-
-    polyline.setPath(path);
-    countPill.textContent=`총 ${points.length}개`;
-    savePoints();
+  } else {
+      alert('이 브라우저에서는 위치 정보가 지원되지 않습니다.');
   }
-
-  function savePoints() { localStorage.setItem('savedPoints', JSON.stringify(points)); }
-
-  document.getElementById('btnSave').addEventListener('click',function(){
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(function(pos){
-        const lat=pos.coords.latitude, lng=pos.coords.longitude;
-        const name=prompt('이 위치 이름 입력:', `위치 ${points.length+1}`);
-        if(!name) return;
-        points.push({name,lat,lng}); savePoints(); renderList();
-      });
-    } else alert('위치 기능을 지원하지 않습니다.');
-  });
-
-  document.getElementById('btnCenter').addEventListener('click',function(){
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(function(pos){
-        const lat=pos.coords.latitude, lng=pos.coords.longitude;
-        map.setCenter(new kakao.maps.LatLng(lat,lng));
-      });
-    }
-  });
-
-  document.getElementById('btnCsv').addEventListener('click',function(){
-    const csv='이름,위도,경도\n'+points.map(p=>`${p.name},${p.lat},${p.lng}`).join('\n');
-    downloadFile('points.csv',csv);
-  });
-
-  document.getElementById('btnJson').addEventListener('click',function(){
-    downloadFile('points.json',JSON.stringify(points,null,2));
-  });
-
-  function downloadFile(filename,content){
-    const blob=new Blob([content],{type:'text/plain'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
-  }
-});
 </script>
 </body>
 </html>
