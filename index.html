@@ -1,64 +1,56 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="utf-8" />
-    <title>카카오맵 현재위치 마커 표시</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
-        #map {
-            width: 100%;
-            height: 100vh; /* 화면 전체 */
-        }
-    </style>
+<meta charset="utf-8">
+<title>카카오맵 내 위치 좌표 확인</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+  #map { width: 100%; height: 100vh; }
+  #coords { position: absolute; top: 10px; left: 10px; background: #fff; padding: 6px 10px; border-radius: 6px; font-size: 16px; z-index: 100; }
+</style>
 </head>
 <body>
-    <div id="map"></div>
+<div id="coords">내 위치 불러오는 중...</div>
+<div id="map"></div>
 
-    <!-- ✅ 카카오맵 SDK (Libraries: services) -->
-    <script 
-        src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=여기에_본인_APPKEY_입력&libraries=services" 
-        defer>
-    </script>
+<!-- ✅ SDK 로드 -->
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=a2b526f8744f752fb07593aad9404d67&autoload=false&libraries=services" defer></script>
 
-    <script>
-    window.onload = function () {
-        kakao.maps.load(function () {
-            // ✅ 기본 지도 설정
-            var container = document.getElementById('map');
-            var options = {
-                center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 시청 좌표
-                level: 3
-            };
-            var map = new kakao.maps.Map(container, options);
+<script>
+window.onload = function() {
+    // ✅ SDK 완전 로드 후 실행
+    kakao.maps.load(function() {
+        var mapContainer = document.getElementById('map');
+        var mapOption = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 3 };
+        var map = new kakao.maps.Map(mapContainer, mapOption);
 
-            // ✅ HTML5 Geolocation으로 현재 위치 가져오기
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (position) {
-                    var lat = position.coords.latitude;
-                    var lon = position.coords.longitude;
-                    var locPosition = new kakao.maps.LatLng(lat, lon);
+        // 현재 위치 가져오기
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                var lat = pos.coords.latitude;
+                var lng = pos.coords.longitude;
+                var loc = new kakao.maps.LatLng(lat, lng);
 
-                    // ✅ 마커 추가
-                    var marker = new kakao.maps.Marker({
-                        position: locPosition,
-                        map: map
-                    });
+                // 마커 표시
+                var marker = new kakao.maps.Marker({ position: loc });
+                marker.setMap(map);
 
-                    // ✅ 지도 중심 이동
-                    map.setCenter(locPosition);
-                }, function (error) {
-                    console.error('위치 정보 가져오기 실패:', error);
-                });
-            } else {
-                console.error('Geolocation을 지원하지 않는 브라우저입니다.');
-            }
-        });
-    };
-    </script>
+                // 지도 중심 이동
+                map.setCenter(loc);
+
+                // 좌표 표시
+                document.getElementById('coords').innerText = `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`;
+            }, function(err) {
+                document.getElementById('coords').innerText = '위치 정보를 가져올 수 없습니다.';
+                console.error(err);
+            });
+        } else {
+            document.getElementById('coords').innerText = '브라우저가 위치 정보를 지원하지 않습니다.';
+        }
+    });
+};
+</script>
 </body>
 </html>
